@@ -91,17 +91,7 @@ resource "aws_instance" "my_server" {
   }
 }
 
-# Allocates a permanent static Elastic IP and pins it to your EC2 instance
-resource "aws_eip" "my_static_ip" {
-  instance = aws_instance.my_server.id
-  domain   = "vpc"
-
-  tags = {
-    Name = "My-Permanent-Web-IP"
-  }
-}
-
-# This output link will stay exactly the same every time you push code
+# UPDATED OUTPUT: This will fetch and print the dynamic public IP assigned by AWS
 output "server_public_ip" {
-  value = "http://${aws_eip.my_static_ip.public_ip}"
+  value = "http://${aws_instance.my_server.public_ip}"
 }
