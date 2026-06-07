@@ -2,7 +2,7 @@ terraform {
   required_version = ">= 1.0.0"
   
   backend "s3" {
-    bucket         = "YOUR-UNIQUE-S3-BUCKET-NAME-HERE" # Ensure your actual S3 bucket name is here
+    bucket         = "my-terraform-state-bucket-illia-123" # Ensure your actual S3 bucket name is here
     key            = "terraform/state/terraform.tfstate"
     region         = "us-east-2"
   }
