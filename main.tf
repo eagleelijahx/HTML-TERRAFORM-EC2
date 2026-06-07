@@ -32,19 +32,22 @@ resource "aws_security_group" "web_sg" {
 # 3. Launches the free-tier EC2 Linux server
 resource "aws_instance" "my_server" {
   ami                         = "ami-0b9064170e32bde34" # Ubuntu 22.04 LTS (Ohio)
-  instance_type               = "t3.micro"             # Free-Tier eligible
+  instance_type               = "t3.micro"              # Free-Tier eligible
   vpc_security_group_ids      = [aws_security_group.web_sg.id]
+  
+  # FORCE AWS TO ASSIGN A PUBLIC IP
+  associate_public_ip_address = true 
   
   user_data_replace_on_change = true 
 
-  # FIXED LINE BELOW: Rewritten with clean quotes so Linux accepts the text format safely
   user_data = <<-EOF
-              #!/bin/bash
-              cat << 'INNER_EOF' > index.html
-              ${file("index.html")}
-              INNER_EOF
-              python3 -m http.server 80 &
-              EOF
+#!/bin/bash
+cd /home/ubuntu
+cat << 'INNER_EOF' > index.html
+${file("index.html")}
+INNER_EOF
+nohup python3 -m http.server 80 > server.log 2>&1 &
+EOF
 
   tags = {
     Name = "My-Automation-Test-Ohio"
