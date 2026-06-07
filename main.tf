@@ -52,19 +52,23 @@ resource "aws_instance" "my_server" {
   subnet_id                   = data.aws_subnets.default.ids[0]
   vpc_security_group_ids      = [aws_security_group.web_sg.id]
   associate_public_ip_address = true 
-  
-  # CRITICAL: This forces Terraform to destroy the old instance and build a new one whenever user_data changes
-  user_data_replace_on_change = true 
 
-  # Simplified inline user data script to install Apache and host a simple page
-  user_data = <<-EOF
-              #!/bin/bash
-              apt-get update -y
-              apt-get install -y apache2
-              systemctl start apache2
-              systemctl enable apache2
-              echo "<h1>Hello World from my automated EC2 instance!</h1>" > /var/var/www/html/index.html
-              EOF
+  # CRITICAL: This monitors your index.html file. If the file changes, 
+  # Terraform deletes the old instance and spins up a new one.
+  user_data_replace_on_change = true 
+  
+  # This triggers the replacement based on the HTML content changing
+  user_data_base64 = base64encode(<<-EOF
+    #!/bin/bash
+    apt-get update -y
+    apt-get install -y apache2
+    systemctl start apache2
+    systemctl enable apache2
+    cat << 'HTML' > /var/www/html/index.html
+    ${file("${path.module}/index.html")}
+    HTML
+  EOF
+  )
 
   tags = {
     Name = "My-Automation-Test-Ohio"
