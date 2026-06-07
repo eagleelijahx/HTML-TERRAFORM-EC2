@@ -1,18 +1,42 @@
+terraform {
+  required_version = ">= 1.0.0"
+  
+  # THIS KEEPS TERRAFORM FROM DUPLICATING SERVERS
+  backend "s3" {
+    bucket         = "my-terraform-state-bucket-illia-123" # Change this to your actual S3 bucket name
+    key            = "terraform/state/terraform.tfstate"
+    region         = "us-east-2"
+  }
+}
+
 provider "aws" {
   region = "us-east-2" # Ohio Data Center
 }
 
-# 1. Generates a random string to prevent duplicate firewall errors
+# Automatically look up your account's Default VPC and Subnets
+data "aws_vpc" "default" {
+  default = true
+}
+
+data "aws_subnets" "default" {
+  filter {
+    name   = "vpc-id"
+    values = [data.aws_vpc.default.id]
+  }
+}
+
+# Generates a random string to prevent duplicate firewall errors
 resource "random_string" "suffix" {
   length  = 4
   special = false
   upper   = false
 }
 
-# 2. Creates the firewall network rules
+# Creates the firewall network rules linked to your Default VPC
 resource "aws_security_group" "web_sg" {
   name        = "allow-web-traffic-ohio-${random_string.suffix.result}" 
   description = "Allow HTTP inbound traffic"
+  vpc_id      = data.aws_vpc.default.id
 
   ingress {
     from_port   = 80
@@ -29,13 +53,13 @@ resource "aws_security_group" "web_sg" {
   }
 }
 
-# 3. Launches the free-tier EC2 Linux server
+# Launches the free-tier EC2 Linux server
 resource "aws_instance" "my_server" {
   ami                         = "ami-0b9064170e32bde34" # Ubuntu 22.04 LTS (Ohio)
   instance_type               = "t3.micro"              # Free-Tier eligible
-  vpc_security_group_ids      = [aws_security_group.web_sg.id]
   
-  # FORCE AWS TO ASSIGN A PUBLIC IP
+  subnet_id                   = data.aws_subnets.default.ids[0]
+  vpc_security_group_ids      = [aws_security_group.web_sg.id]
   associate_public_ip_address = true 
   
   user_data_replace_on_change = true 
