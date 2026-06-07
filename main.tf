@@ -1,10 +1,10 @@
 provider "aws" {
-  region = "us-east-2" # CHOSEN REGION: Ohio
+  region = "us-east-2" # Ohio Data Center
 }
 
 # 1. Create a firewall group to allow public web access
 resource "aws_security_group" "web_sg" {
-  name        = "allow-web-traffic-ohio"
+  name        = "allow-web-traffic-ohio-v2"
   description = "Allow HTTP inbound traffic"
 
   ingress {
@@ -24,8 +24,12 @@ resource "aws_security_group" "web_sg" {
 
 # 2. Launch a single free-tier EC2 Linux server
 resource "aws_instance" "my_server" {
-  ami                         = "ami-0b9064170e32bde34" # Standard Ubuntu 22.04 AMI inside us-east-2 (Ohio)
-  instance_type               = "t2.micro"             # 100% Free-Tier eligible
+  # Standard Ubuntu 22.04 AMI built for T3 architectures in Ohio
+  ami                         = "ami-0b9064170e32bde34" 
+  
+  # SWAPPED HERE: Setting to t3.micro to perfectly match your account's Free Tier
+  instance_type               = "t3.micro"             
+  
   vpc_security_group_ids      = [aws_security_group.web_sg.id]
   
   # Forces the server to swap out cleanly when your text changes
