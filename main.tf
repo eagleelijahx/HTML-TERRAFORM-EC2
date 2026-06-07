@@ -1,10 +1,10 @@
 provider "aws" {
-  region = "us-east-1"
+  region = "us-east-2" # CHOSEN REGION: Ohio
 }
 
 # 1. Create a firewall group to allow public web access
 resource "aws_security_group" "web_sg" {
-  name        = "allow-web-traffic-unique"
+  name        = "allow-web-traffic-ohio"
   description = "Allow HTTP inbound traffic"
 
   ingress {
@@ -24,11 +24,11 @@ resource "aws_security_group" "web_sg" {
 
 # 2. Launch a single free-tier EC2 Linux server
 resource "aws_instance" "my_server" {
-  ami                         = "ami-0c7217cdde317cfec" # Standard Ubuntu 22.04 AMI in us-east-1
+  ami                         = "ami-0b9064170e32bde34" # Standard Ubuntu 22.04 AMI inside us-east-2 (Ohio)
   instance_type               = "t2.micro"             # 100% Free-Tier eligible
   vpc_security_group_ids      = [aws_security_group.web_sg.id]
   
-  # CRITICAL: This forces the server to swap out cleanly when your text changes
+  # Forces the server to swap out cleanly when your text changes
   user_data_replace_on_change = true 
 
   # This Linux script runs instantly when the server boots up
@@ -39,7 +39,7 @@ resource "aws_instance" "my_server" {
               EOF
 
   tags = {
-    Name = "My-Automation-Test"
+    Name = "My-Automation-Test-Ohio"
   }
 }
 
