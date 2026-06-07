@@ -9,7 +9,6 @@ jobs:
     name: 'Terraform'
     runs-on: ubuntu-latest
 
-    # Crucial permission block to let the script write text back to GitHub
     permissions:
       contents: write
       repository-projects: write
@@ -27,7 +26,6 @@ jobs:
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
-    # 1. We tell terraform to save its output log to a local file
     - name: Terraform Apply
       id: apply
       run: |
@@ -37,12 +35,11 @@ jobs:
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
-    # 2. This step takes that IP and updates your GitHub Repository description box!
+    # FIXED LINE BELOW: Cleaned up the brackets so curl reads the text properly
     - name: Update GitHub Repo Description
       run: |
         curl -X PATCH \
           -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
           -H "Accept: application/vnd.github.v3+json" \
-          https://github.com{{ github.repository }} \
-          -d "{\"description\":\" Live AWS Site: ${{ env.IP_URL }}\"}"
-
+          https://github.com{{ github.repository_owner }}/${{ github.event.repository.name }} \
+          -d "{\"description\":\"🚀 Live AWS Site: ${{ env.IP_URL }}\"}"
