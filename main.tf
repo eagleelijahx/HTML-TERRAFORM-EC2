@@ -2,7 +2,7 @@ terraform {
   required_version = ">= 1.0.0"
   
   backend "s3" {
-    bucket         = "my-terraform-state-bucket-illia-123" # Ensure your actual S3 bucket name is here
+    bucket         = "my-terraform-state-bucket-illia-123" # <--- Swap this to your real bucket name!
     key            = "terraform/state/terraform.tfstate"
     region         = "us-east-2"
   }
@@ -78,6 +78,17 @@ EOF
   }
 }
 
+# NEW: Allocates a permanent static Elastic IP and pins it to your EC2 instance
+resource "aws_eip" "my_static_ip" {
+  instance = aws_instance.my_server.id
+  domain   = "vpc"
+
+  tags = {
+    Name = "My-Permanent-Web-IP"
+  }
+}
+
+# UPDATED OUTPUT: This output link will now stay exactly the same every time you push code
 output "server_public_ip" {
-  value = "http://${aws_instance.my_server.public_ip}"
+  value = "http://${aws_eip.my_static_ip.public_ip}"
 }
