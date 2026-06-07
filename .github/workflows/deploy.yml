@@ -9,10 +9,6 @@ jobs:
     name: 'Terraform'
     runs-on: ubuntu-latest
 
-    permissions:
-      contents: write
-      repository-projects: write
-
     steps:
     - name: Checkout Code
       uses: actions/checkout@v4
@@ -27,19 +23,8 @@ jobs:
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
     - name: Terraform Apply
-      id: apply
-      run: |
-        terraform apply -auto-approve
-        echo "IP_URL=$(terraform output -raw server_public_ip)" >> $GITHUB_ENV
+      run: terraform apply -auto-approve
       env:
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
-    # FIXED LINE BELOW: Cleaned up the brackets so curl reads the text properly
-    - name: Update GitHub Repo Description
-      run: |
-        curl -X PATCH \
-          -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-          -H "Accept: application/vnd.github.v3+json" \
-          https://github.com{{ github.repository_owner }}/${{ github.event.repository.name }} \
-          -d "{\"description\":\"🚀 Live AWS Site: ${{ env.IP_URL }}\"}"
