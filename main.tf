@@ -63,35 +63,17 @@ resource "aws_instance" "my_server" {
   
   user_data_replace_on_change = true 
 
-  # FIXED BASH SCRIPT: Safely injects your local index.html content via Terraform interpolation
-  user_data = <<-EOF
-    #!/bin/bash
-    # Update packages and make sure python3 is ready
-    apt-get update -y
-    apt-get install -y python3
-
-    # Navigate to the home directory
-    cd /home/ubuntu
-
-    # Write the actual contents of your local index.html file into the EC2 instance
-    cat << 'EOF' > index.html
-    ${file("${path.module}/index.html")}
-    EOF
-
-    # Fix permissions so everything can read it
-    chown ubuntu:ubuntu index.html
-    chmod 644 index.html
-
-    # Run the server on port 80 as root and bind to all incoming network interfaces
-    nohup python3 -m http.server 80 --bind 0.0.0.0 > /home/ubuntu/server.log 2>&1 &
-  EOF
+  # FIXED: Uses templatefile to cleanly parse the bash script without syntax collisions
+  user_data = templatefile("${path.module}/userdata.sh", {
+    html_content = file("${path.module}/index.html")
+  })
 
   tags = {
     Name = "My-Automation-Test-Ohio"
   }
 }
 
-# UPDATED OUTPUT: This will fetch and print the dynamic public IP assigned by AWS
+# This will fetch and print the dynamic public IP assigned by AWS
 output "server_public_ip" {
   value = "http://${aws_instance.my_server.public_ip}"
 }
