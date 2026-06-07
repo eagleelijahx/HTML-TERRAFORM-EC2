@@ -66,18 +66,17 @@ resource "aws_instance" "my_server" {
 
   user_data = <<-EOF
 #!/bin/bash
+# Move to home directory
 cd /home/ubuntu
+
+# Write the index file
 cat << 'INNER_EOF' > index.html
 ${file("index.html")}
 INNER_EOF
-nohup python3 -m http.server 80 > server.log 2>&1 &
+
+# Fix permissions so everything is owned by the default user
+chown ubuntu:ubuntu index.html
+
+# Run python server using a robust subshell that stays alive
+(while true; do python3 -m http.server 80; sleep 1; done) > /home/ubuntu/server.log 2>&1 &
 EOF
-
-  tags = {
-    Name = "My-Automation-Test-Ohio"
-  }
-}
-
-output "server_public_ip" {
-  value = "http://${aws_instance.my_server.public_ip}"
-}
