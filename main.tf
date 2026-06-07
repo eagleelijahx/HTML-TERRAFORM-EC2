@@ -24,9 +24,9 @@ data "aws_subnets" "default" {
   }
 }
 
-# Simple firewall rule allowing HTTP traffic
+# Simple firewall rule allowing HTTP traffic (Fixed with name_prefix to avoid duplicate errors)
 resource "aws_security_group" "web_sg" {
-  name        = "allow-web-traffic-ohio"
+  name_prefix = "allow-web-traffic-ohio-"
   description = "Allow HTTP inbound traffic"
   vpc_id      = data.aws_vpc.default.id
 
@@ -42,6 +42,10 @@ resource "aws_security_group" "web_sg" {
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  lifecycle {
+    create_before_destroy = true
   }
 }
 
