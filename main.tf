@@ -2,9 +2,16 @@ provider "aws" {
   region = "us-east-2" # Ohio Data Center
 }
 
-# 1. CHANGED HERE: Renamed to v3 to bypass the duplicate error completely
+# 1. This generates a random string of 4 letters automatically
+resource "random_string" "suffix" {
+  length  = 4
+  special = false
+  upper   = false
+}
+
+# 2. We attach that random string directly to the firewall name
 resource "aws_security_group" "web_sg" {
-  name        = "allow-web-traffic-ohio-v3" 
+  name        = "allow-web-traffic-ohio-${random_string.suffix.result}" 
   description = "Allow HTTP inbound traffic"
 
   ingress {
@@ -22,16 +29,14 @@ resource "aws_security_group" "web_sg" {
   }
 }
 
-# 2. Launch a single free-tier EC2 Linux server
+# 3. Launch a single free-tier EC2 Linux server
 resource "aws_instance" "my_server" {
   ami                         = "ami-0b9064170e32bde34" # Standard Ubuntu 22.04 AMI inside us-east-2 (Ohio)
   instance_type               = "t3.micro"             # 100% Free-Tier eligible
   vpc_security_group_ids      = [aws_security_group.web_sg.id]
   
-  # Forces the server to swap out cleanly when your text changes
   user_data_replace_on_change = true 
 
-  # This Linux script runs instantly when the server boots up
   user_data = <<-EOF
               #!/bin/bash
               echo "${file("index.html")}" > index.html
@@ -43,7 +48,7 @@ resource "aws_instance" "my_server" {
   }
 }
 
-# 3. Print the final IP address into the GitHub Action logs
 output "server_public_ip" {
   value = "http://${aws_instance.my_server.public_ip}"
 }
+
