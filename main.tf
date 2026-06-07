@@ -63,22 +63,35 @@ resource "aws_instance" "my_server" {
   
   user_data_replace_on_change = true 
 
+  # FIXED BASH SCRIPT: Safely injects your local index.html content via Terraform interpolation
   user_data = <<-EOF
-#!/bin/bash
-cd /home/ubuntu
-cat << 'INNER_EOF' > index.html
-${file("index.html")}
-INNER_EOF
-chown ubuntu:ubuntu index.html
-(while true; do python3 -m http.server 80; sleep 1; done) > /home/ubuntu/server.log 2>&1 &
-EOF
+    #!/bin/bash
+    # Update packages and make sure python3 is ready
+    apt-get update -y
+    apt-get install -y python3
+
+    # Navigate to the home directory
+    cd /home/ubuntu
+
+    # Write the actual contents of your local index.html file into the EC2 instance
+    cat << 'EOF' > index.html
+    ${file("${path.module}/index.html")}
+    EOF
+
+    # Fix permissions so everything can read it
+    chown ubuntu:ubuntu index.html
+    chmod 644 index.html
+
+    # Run the server on port 80 as root and bind to all incoming network interfaces
+    nohup python3 -m http.server 80 --bind 0.0.0.0 > /home/ubuntu/server.log 2>&1 &
+  EOF
 
   tags = {
     Name = "My-Automation-Test-Ohio"
   }
 }
 
-# NEW: Allocates a permanent static Elastic IP and pins it to your EC2 instance
+# Allocates a permanent static Elastic IP and pins it to your EC2 instance
 resource "aws_eip" "my_static_ip" {
   instance = aws_instance.my_server.id
   domain   = "vpc"
@@ -88,7 +101,7 @@ resource "aws_eip" "my_static_ip" {
   }
 }
 
-# UPDATED OUTPUT: This output link will now stay exactly the same every time you push code
+# This output link will stay exactly the same every time you push code
 output "server_public_ip" {
   value = "http://${aws_eip.my_static_ip.public_ip}"
 }
