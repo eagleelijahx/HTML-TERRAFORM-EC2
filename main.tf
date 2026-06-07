@@ -1,9 +1,8 @@
 terraform {
   required_version = ">= 1.0.0"
   
-  # THIS KEEPS TERRAFORM FROM DUPLICATING SERVERS
   backend "s3" {
-    bucket         = "my-terraform-state-bucket-illia-123" # Change this to your actual S3 bucket name
+    bucket         = "YOUR-UNIQUE-S3-BUCKET-NAME-HERE" # Ensure your actual S3 bucket name is here
     key            = "terraform/state/terraform.tfstate"
     region         = "us-east-2"
   }
@@ -66,17 +65,19 @@ resource "aws_instance" "my_server" {
 
   user_data = <<-EOF
 #!/bin/bash
-# Move to home directory
 cd /home/ubuntu
-
-# Write the index file
 cat << 'INNER_EOF' > index.html
 ${file("index.html")}
 INNER_EOF
-
-# Fix permissions so everything is owned by the default user
 chown ubuntu:ubuntu index.html
-
-# Run python server using a robust subshell that stays alive
 (while true; do python3 -m http.server 80; sleep 1; done) > /home/ubuntu/server.log 2>&1 &
 EOF
+
+  tags = {
+    Name = "My-Automation-Test-Ohio"
+  }
+}
+
+output "server_public_ip" {
+  value = "http://${aws_instance.my_server.public_ip}"
+}
