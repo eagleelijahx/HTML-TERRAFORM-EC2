@@ -9,6 +9,11 @@ jobs:
     name: 'Terraform'
     runs-on: ubuntu-latest
 
+    # Crucial permission block to let the script write text back to GitHub
+    permissions:
+      contents: write
+      repository-projects: write
+
     steps:
     - name: Checkout Code
       uses: actions/checkout@v4
@@ -22,8 +27,22 @@ jobs:
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
+    # 1. We tell terraform to save its output log to a local file
     - name: Terraform Apply
-      run: terraform apply -auto-approve
+      id: apply
+      run: |
+        terraform apply -auto-approve
+        echo "IP_URL=$(terraform output -raw server_public_ip)" >> $GITHUB_ENV
       env:
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+    # 2. This step takes that IP and updates your GitHub Repository description box!
+    - name: Update GitHub Repo Description
+      run: |
+        curl -X PATCH \
+          -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+          -H "Accept: application/vnd.github.v3+json" \
+          https://github.com{{ github.repository }} \
+          -d "{\"description\":\" Live AWS Site: ${{ env.IP_URL }}\"}"
+
