@@ -2,17 +2,17 @@ terraform {
   required_version = ">= 1.0.0"
   
   backend "s3" {
-    bucket         = "my-terraform-state-bucket-illia-123" # <--- Swap this to your real bucket name!
+    bucket         = "my-terraform-state-bucket-illia-123" # Make sure this matches your actual S3 bucket!
     key            = "terraform/state/terraform.tfstate"
     region         = "us-east-2"
   }
 }
 
 provider "aws" {
-  region = "us-east-2" # Ohio Data Center
+  region = "us-east-2" 
 }
 
-# Automatically look up your account's Default VPC and Subnets
+# Automatically use your account's Default VPC and Subnets
 data "aws_vpc" "default" {
   default = true
 }
@@ -24,16 +24,9 @@ data "aws_subnets" "default" {
   }
 }
 
-# Generates a random string to prevent duplicate firewall errors
-resource "random_string" "suffix" {
-  length  = 4
-  special = false
-  upper   = false
-}
-
-# Creates the firewall network rules linked to your Default VPC
+# Simple firewall rule allowing HTTP traffic
 resource "aws_security_group" "web_sg" {
-  name        = "allow-web-traffic-ohio-${random_string.suffix.result}" 
+  name        = "allow-web-traffic-ohio"
   description = "Allow HTTP inbound traffic"
   vpc_id      = data.aws_vpc.default.id
 
@@ -52,28 +45,32 @@ resource "aws_security_group" "web_sg" {
   }
 }
 
-# Launches the free-tier EC2 Linux server
+# Launching the EC2 server
 resource "aws_instance" "my_server" {
   ami                         = "ami-0b9064170e32bde34" # Ubuntu 22.04 LTS (Ohio)
-  instance_type               = "t3.micro"              # Free-Tier eligible
-  
+  instance_type               = "t3.micro"              
   subnet_id                   = data.aws_subnets.default.ids[0]
   vpc_security_group_ids      = [aws_security_group.web_sg.id]
   associate_public_ip_address = true 
   
+  # CRITICAL: This forces Terraform to destroy the old instance and build a new one whenever user_data changes
   user_data_replace_on_change = true 
 
-  # FIXED: Uses templatefile to cleanly parse the bash script without syntax collisions
-  user_data = templatefile("${path.module}/userdata.sh", {
-    html_content = file("${path.module}/index.html")
-  })
+  # Simplified inline user data script to install Apache and host a simple page
+  user_data = <<-EOF
+              #!/bin/bash
+              apt-get update -y
+              apt-get install -y apache2
+              systemctl start apache2
+              systemctl enable apache2
+              echo "<h1>Hello World from my automated EC2 instance!</h1>" > /var/var/www/html/index.html
+              EOF
 
   tags = {
     Name = "My-Automation-Test-Ohio"
   }
 }
 
-# This will fetch and print the dynamic public IP assigned by AWS
 output "server_public_ip" {
   value = "http://${aws_instance.my_server.public_ip}"
 }
