@@ -1,0 +1,1 @@
+Deployed a static website on AWS EC2 using Terraform with remote state management in Amazon S3. Built a CI/CD pipeline to automatically apply infrastructure changes and redeploy the updated site, with Terraform automatically replacing outdated instances during deployments.
