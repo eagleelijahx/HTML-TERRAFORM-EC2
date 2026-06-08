@@ -77,6 +77,10 @@ resource "aws_instance" "my_server" {
   tags = {
     Name = "My-Automation-Test-Ohio"
   }
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 output "server_public_ip" {
